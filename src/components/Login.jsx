@@ -22,6 +22,7 @@ export default function Login() {
       },
     })
       .then((res) => {
+        console.log(res.data.token);
         localStorage.setItem("token", res.data.token);
       })
       .catch((err) => (err.response.data.success ? null : setError(true)))
@@ -41,7 +42,7 @@ export default function Login() {
         <input
           type="text"
           id="name"
-          placeholder="Enter username"
+          placeholder="Enter username (admin)"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
         />
@@ -51,7 +52,7 @@ export default function Login() {
         <input
           type="password"
           id="pswd"
-          placeholder="Enter password"
+          placeholder="Enter password (password123)"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />

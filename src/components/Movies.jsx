@@ -1,6 +1,7 @@
 import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import InfiniteScroll from "react-infinite-scroll-component";
 
 export default function Movies() {
   const navigate = useNavigate();
@@ -8,7 +9,12 @@ export default function Movies() {
   const [loading, setLoading] = useState(false);
   const [filteredMovies, setfilteredMovies] = useState([]);
   const [addMovie, setAddMovie] = useState(false);
+  const [viewEditForm, setViewEditForm] = useState(false);
   const [genre, setGenre] = useState("");
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [limit, setLimit] = useState(6);
+
   const [movieData, setMovieData] = useState({
     title: "",
     poster: "",
@@ -19,6 +25,7 @@ export default function Movies() {
 
   function handleEdit(id) {
     console.log(id, "ignore for now");
+    navigate(`/editPage/${id}`);
   }
   function handleDelete(id) {
     axios({
@@ -41,12 +48,16 @@ export default function Movies() {
     function fetchData() {
       setLoading(true);
       axios({
-        url: `https://inexpensive-spicy-principle.glitch.me/movies?genre=${genre}`,
+        url: `https://inexpensive-spicy-principle.glitch.me/movies?genre=${genre}&page=${page}&limit=${limit}`,
         method: "GET",
       })
         .then((res) => {
-          setMovies(res.data.movies);
-          setfilteredMovies(res.data.movies);
+          if (res.data.movies.length == 0) {
+            setHasMore(false);
+          } else {
+            setMovies([...movies, ...res.data.movies]);
+          }
+          setPage(res.data.currentPage);
         })
         .catch((err) => console.log(err))
         .finally(() => setLoading(false));
@@ -57,13 +68,13 @@ export default function Movies() {
     } else {
       fetchData();
     }
-  }, [genre]);
+  }, [genre, page, limit]);
   // posting
   function handleSubmit(e) {
     e.preventDefault();
     console.log(movieData);
     axios({
-      url: `https://inexpensive-spicy-principle.glitch.me/movies`,
+      url: `https://inexpensive-spicy-principle.glitch.me/movies/`,
       method: "POST",
       data: {
         id: movies.length ? movies[movies.length - 1].id + 1 : 1,
@@ -89,10 +100,34 @@ export default function Movies() {
 
   return (
     <div>
-      <button onClick={handleAddMovieBtn}>Add Movie</button>
+      <div className="genreAndForm">
+        <button onClick={handleAddMovieBtn} className="addMovieBtn">
+          Add Movie
+        </button>
+
+        {/* filter div */}
+        <div>
+          <select
+            value={genre}
+            onChange={(e) => {
+              setGenre(e.target.value);
+            }}
+            name="genre"
+          >
+            <option value="">--All Genre--</option>
+            <option value="Fantasy">Fantasy</option>
+            <option value="Action">Action</option>
+            <option value="Drama">Drama</option>
+            <option value="Sci-Fi">Sci-Fi</option>
+            <option value="Animation">Animation</option>
+            <option value="Crime">Crime</option>
+            <option value="Romance">Romance</option>
+          </select>
+        </div>
+      </div>
       {addMovie && (
         <div>
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} className="addMovieForm">
             <label htmlFor="movieTitle">Title:</label>
             <input
               type="text"
@@ -149,44 +184,41 @@ export default function Movies() {
           </form>
         </div>
       )}
-      {/* filter div */}
-      <div>
-        <select
-          value={genre}
-          onChange={(e) => setGenre(e.target.value)}
-          name="genre"
-        >
-          <option value="">Choose Genre</option>
-          <option value="Fantasy">Fantasy</option>
-          <option value="Action">Action</option>
-          <option value="Drama">Drama</option>
-          <option value="Sci-Fi">Sci-Fi</option>
-          <option value="Animation">Animation</option>
-          <option value="Crime">Crime</option>
-          <option value="Romance">Romance</option>
-        </select>
-      </div>
 
       {/* movies */}
-      <h2>Movies Page</h2>
-
-      {loading ? (
-        <h3>Loading movies...</h3>
-      ) : (
-        <div>
+      <InfiniteScroll
+        dataLength={movies.length}
+        next={() => setPage((prev) => prev + 1)}
+        hasMore={hasMore}
+        loader={<h4>Loading...</h4>}
+        endMessage={
+          <p style={{ textAlign: "center" }}>
+            <b>Yay! You have seen it all</b>
+          </p>
+        }
+      >
+        <div className="moviesCont">
           {movies.map((el) => {
             return (
-              <div key={el.id}>
-                <img src={el.poster} alt={el.title} />
+              <div key={el.id} className="movieCard">
+                <img src={el.poster} alt={el.title} className="movieImg" />
                 <h2>{el.title}</h2>
-                <h3>Genre: {el.genre}</h3>
-                <h4>({el.releaseDate})</h4>
 
                 <p>{el.description}</p>
-                <div>
-                  <button onClick={() => handleEdit(el.id)}>Edit</button>
-                  <button onClick={() => handleDelete(el.id)}>Delete</button>
-                  <button onClick={() => navigate(`/movies/${el.id}`)}>
+                <div className="btnCont">
+                  <button className="editBtn" onClick={() => handleEdit(el.id)}>
+                    Edit
+                  </button>
+                  <button
+                    className="deleteBtn"
+                    onClick={() => handleDelete(el.id)}
+                  >
+                    Delete
+                  </button>
+                  <button
+                    className="viewBtn"
+                    onClick={() => navigate(`/movies/${el.id}`)}
+                  >
                     View more...
                   </button>
                 </div>
@@ -194,7 +226,7 @@ export default function Movies() {
             );
           })}
         </div>
-      )}
+      </InfiniteScroll>
     </div>
   );
 }
